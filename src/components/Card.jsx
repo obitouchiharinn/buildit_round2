@@ -1,19 +1,12 @@
 import { useState, useEffect, memo, useCallback } from "react";
 import Link from "next/link";
 import { FiThumbsUp } from "react-icons/fi";
-import debounce from "lodash.debounce"; // Install lodash for debounce
-
-// Debounced update function outside the component to avoid re-creation on each render
-const debouncedUpdateLikeCount = debounce((updateLikeCount, movieId, likeCount) => {
-  if (typeof updateLikeCount === "function") {
-    updateLikeCount(movieId, likeCount);
-  }
-}, 500);
+import debounce from "lodash.debounce"; // Ensure debounce is imported here
 
 function Card({ result, updateLikeCount }) {
   const [voteCount, setVoteCount] = useState(0);
 
-  // Use a memoized callback to prevent unnecessary re-renders
+  // Memoize the vote handler to prevent unnecessary re-renders
   const handleVote = useCallback((e) => {
     e.preventDefault();
     setVoteCount((prev) => prev + 1);
@@ -21,7 +14,13 @@ function Card({ result, updateLikeCount }) {
 
   // Trigger debounced update of like count when voteCount changes
   useEffect(() => {
-    debouncedUpdateLikeCount(updateLikeCount, result.id, voteCount);
+    // Create the debounced version of the update function
+    const debouncedUpdateLikeCount = debounce((id, count) => {
+      updateLikeCount(id, count);
+    }, 500);
+
+    // Call the debounced update function
+    debouncedUpdateLikeCount(result.id, voteCount);
 
     // Cleanup debounce on unmount
     return () => debouncedUpdateLikeCount.cancel();
@@ -32,14 +31,13 @@ function Card({ result, updateLikeCount }) {
       <Link href={`/movie/${result.id}`} prefetch={false}>
         <div>
           <div className="relative w-full overflow-hidden group-hover:scale-105 transition-all duration-500 ease-in-out aspect-video">
-            {/* Lazy-load video with preload="none" to avoid blocking other elements */}
+            {/* Lazy-load video */}
             <video
               src={result.file_url}
               muted
               loop
               playsInline
-              // preload="none" // Prevents video from blocking rendering
-              loading="lazy" // Lazy-load video to prioritize other elements
+              loading="lazy" // Lazy-load video
               className="object-cover w-full h-full absolute top-0 left-0"
             />
           </div>
@@ -67,5 +65,5 @@ function Card({ result, updateLikeCount }) {
   );
 }
 
-// Use React.memo to prevent unnecessary re-renders
+// Memoize the Card component to prevent unnecessary re-renders
 export default memo(Card);

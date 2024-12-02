@@ -1,8 +1,11 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation'; // Next.js navigation hook
 import styled from 'styled-components';
 import supabase from './supabaseClient'; // Import your Supabase client
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 const Form = () => {
   const [title, setTitle] = useState('');
@@ -10,17 +13,24 @@ const Form = () => {
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false); // State to manage loading during upload
-
   const fileInputRef = useRef(null);
 
+  const router = useRouter(); // Router for navigation
+
+  // Handle file selection
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
-    if (selectedFile && selectedFile.type.startsWith('video/')) {
-      setFile(selectedFile);
-      setError('');
-    } else {
-      setError('Please select a valid video file (MP4, MOV, AVI).');
-      setFile(null);
+    if (selectedFile) {
+      if (!selectedFile.type.startsWith('video/')) {
+        setError('Please select a valid video file (MP4, MOV, AVI).');
+        setFile(null);
+      } else if (selectedFile.size > MAX_FILE_SIZE) {
+        setError('File size must be less than 10MB.');
+        setFile(null);
+      } else {
+        setFile(selectedFile);
+        setError('');
+      }
     }
   };
 
@@ -29,6 +39,16 @@ const Form = () => {
   };
 
   const handleUpload = async () => {
+    if (!title.trim()) {
+      setError('Please provide a title.');
+      return;
+    }
+
+    if (!description.trim()) {
+      setError('Please provide a description.');
+      return;
+    }
+
     if (!file) {
       setError('Please select a video file to upload.');
       return;
@@ -96,6 +116,9 @@ const Form = () => {
       <StyledWrapper>
         <div className="modal">
           <div className="modal-header">
+          <button className="btn-back" onClick={() => router.back()}>
+              ← Back
+            </button>
             <div className="modal-logo">
               <span className="logo-circle" aria-hidden="true">
                 <svg
@@ -115,15 +138,6 @@ const Form = () => {
                 </svg>
               </span>
             </div>
-            <button className="btn-close" aria-label="Close modal">
-              <svg xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24">
-                <path fill="none" d="M0 0h24v24H0V0z" />
-                <path
-                  d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"
-                  fill="var(--c-text-secondary)"
-                />
-              </svg>
-            </button>
           </div>
           <div className="modal-body">
             <label htmlFor="video-title" className="sr-only">
@@ -192,25 +206,23 @@ const StyledWrapper = styled.div`
 
   .modal-header {
     display: flex;
+    align-items: center;
     justify-content: space-between;
     padding: 1rem;
     background-color: #f8f8f8;
     border-bottom: 1px solid #ddd;
   }
 
-  .btn-close {
-    background: transparent;
+  .btn-back {
+    background: none;
     border: none;
+    color: #0070f3;
+    font-size: 1rem;
     cursor: pointer;
   }
 
   .modal-body {
     padding: 2rem;
-  }
-
-  .modal-title {
-    font-size: 1.25rem;
-    font-weight: bold;
   }
 
   .input-field {
@@ -233,18 +245,7 @@ const StyledWrapper = styled.div`
     border-color: #1cc972;
   }
 
-  .upload-area-icon {
-    width: 2rem;
-    height: 2rem;
-    fill: #1cc972;
-  }
-
-  .upload-area-title {
-    margin-top: 1rem;
-    font-weight: bold;
-  }
-
-  .error-message {
+  .error {
     color: red;
     font-size: 0.875rem;
     margin-top: 1rem;
@@ -259,7 +260,6 @@ const StyledWrapper = styled.div`
     border-radius: 8px;
     cursor: pointer;
   }
-
 `;
 
 export default Form;
