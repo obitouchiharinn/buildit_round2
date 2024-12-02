@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+.flex.items-center.gap-4 {
+    min-height: 50px; /* Adjust as needed */
+  }
+  
+  .content-container {
+    min-height: 100px; /* Ensure elements don't shift */
+  }
+  
+  /* Optional: Prevent CLS on images by ensuring dimensions */
+  img {
+    width: 100%; /* or define fixed width/height */
+    height: auto;
+  }
+
+  @font-face {
+    font-family: 'Inter';
+    src: url('/fonts/inter-regular.woff2') format('woff2'),
+         url('/fonts/inter-regular.woff') format('woff');
+    font-weight: 400;
+    font-style: normal;
+  }
+  
+  body {
+    font-family: 'Inter', sans-serif;
+  }
+  html, body {
+    color-scheme: light;
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+  
