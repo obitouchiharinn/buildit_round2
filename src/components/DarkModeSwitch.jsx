@@ -7,27 +7,27 @@ import { useEffect, useState } from 'react';
 export default function DarkModeSwitch() {
   const { theme, setTheme, systemTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const currentTheme = theme === 'system' ? systemTheme : theme;
 
+  // Ensure component is mounted before rendering to avoid hydration mismatches
   useEffect(() => {
-    setMounted(true); // Ensure mounted is true after the first render on the client-side
+    setMounted(true);
   }, []);
 
-  if (!mounted) return null; // Don't render anything until the component is mounted
+  // Current theme logic
+  const currentTheme = mounted ? (theme === 'system' ? systemTheme : theme) : 'light';
+
+  // Accessibility: Add ARIA labels for better screen reader support
+  const handleToggleTheme = () => {
+    setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+  };
 
   return (
-    <div>
-      {currentTheme === 'dark' ? (
-        <MdLightMode
-          onClick={() => setTheme('light')}
-          className='text-xl cursor-pointer hover:text-amber-500'
-        />
-      ) : (
-        <MdDarkMode
-          onClick={() => setTheme('dark')}
-          className='text-xl cursor-pointer hover:text-amber-500'
-        />
-      )}
-    </div>
+    <button
+      onClick={handleToggleTheme}
+      className="text-xl cursor-pointer hover:text-amber-500 transition-colors duration-300"
+      aria-label={currentTheme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+    >
+      {currentTheme === 'light' ? <MdDarkMode /> : <MdLightMode />}
+    </button>
   );
 }

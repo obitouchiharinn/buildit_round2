@@ -1,65 +1,83 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation"; // Correctly capture the dynamic route parameter using useParams
-import supabase from "@/components/supabaseClient"; // Supabase client configuration
-import Card from "@/components/Card"; // Import the Card component
+import { useParams } from "next/navigation";
+import supabase from "@/components/supabaseClient";
+import dynamic from "next/dynamic";
+
+const Card = dynamic(() => import("@/components/Card"), {
+  ssr: false,
+  loading: () => <p>Loading cards...</p>, // Lightweight fallback
+});
 
 export default function SearchResults() {
-  const { searchTerm } = useParams(); // Capture the dynamic route parameter
-  const [results, setResults] = useState([]); // State to hold search results
-  const [loading, setLoading] = useState(true); // State for loading status
+  const { searchTerm } = useParams(); // Capture dynamic route parameter
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Skip fetching if no searchTerm is provided
     if (!searchTerm) {
       setLoading(false);
       return;
     }
 
-    // Check for cached results in localStorage
-    const cachedResults = localStorage.getItem(searchTerm);
+    // Fetch cached or fresh results
+    const fetchData = async () => {
+      const cachedResults = sessionStorage.getItem(searchTerm);
 
-    if (cachedResults) {
-      setResults(JSON.parse(cachedResults)); // Use cached results if available
-      setLoading(false);
-    } else {
-      fetchMovies(); // Otherwise, fetch from Supabase
-    }
+      if (cachedResults) {
+        setResults(JSON.parse(cachedResults));
+        setLoading(false);
+      } else {
+        await fetchMovies();
+      }
+    };
+
+    fetchData();
   }, [searchTerm]);
 
-  // Function to fetch search results from Supabase
   const fetchMovies = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("upload") // Replace "upload" with your Supabase table name
-      .select("id, title, description, file_url") // Select fields you need
-      .ilike("title", `%${searchTerm}%`); // Perform case-insensitive search
+    try {
+      const { data, error } = await supabase
+        .from("upload")
+        .select("id, title, description, file_url")
+        .ilike("title", `%${searchTerm}%`);
 
-    if (error) {
-      console.error("Error fetching movies:", error);
-      setResults([]); // Show no results on error
-    } else {
-      setResults(data); // Update results state with fetched data
-      localStorage.setItem(searchTerm, JSON.stringify(data)); // Cache the results
+      if (error) throw error;
+
+      const movies = data || [];
+      setResults(movies);
+      sessionStorage.setItem(searchTerm, JSON.stringify(movies));
+    } catch (err) {
+      console.error("Error fetching movies:", err);
+      setResults([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false); // Stop the loading state
   };
 
+  // Render loading state
   if (loading) {
     return (
-      <p className="text-center text-lg font-semibold">Loading...</p>
+      <main className="px-6 py-4">
+        <p className="text-center text-lg font-semibold">Loading...</p>
+      </main>
     );
   }
 
+  // Render no results state
   if (results.length === 0) {
     return (
-      <p className="text-center text-lg font-semibold">
-        No results found for "{searchTerm}".
-      </p>
+      <main className="px-6 py-4">
+        <p className="text-center text-lg font-semibold">
+          No results found for "{searchTerm}".
+        </p>
+      </main>
     );
   }
 
+  // Render results
   return (
     <main className="px-6 py-4">
       <h1 className="text-3xl font-bold text-center mb-6">

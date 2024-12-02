@@ -25,9 +25,9 @@ export default function SearchBox() {
   return (
     <main>
       <StyledWrapper>
-        <form className="search " onSubmit={handleSubmit}>
+        <form className="search" onSubmit={handleSubmit}>
           {/* Search Icon */}
-          <div className="icon-container mb ">
+          <div className="icon-container mb">
             <IoSearchOutline className="search-icon" />
           </div>
           {/* Search Input */}
@@ -58,19 +58,22 @@ export default function SearchBox() {
 
 const StyledWrapper = styled.div`
   margin-top: 20px;
+  display: flex;
+  justify-content: center;
 
   .search {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     border: 1px solid #ccc;
     border-radius: 24px;
     padding: 8px 16px;
     background-color: #fff;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    max-width: 600px;
-    margin: 0 auto;
+    width: 100%;
+    max-width: 600px; /* Optional: Limit the max width */
     position: relative;
+    transition: width 0.3s ease; /* Smooth transition for width */
   }
 
   .search__input {
@@ -81,6 +84,7 @@ const StyledWrapper = styled.div`
     padding: 8px;
     margin: 0 8px;
     background-color: transparent;
+    height: 40px; /* Consistent height for the input */
   }
 
   .icon-container {
@@ -117,11 +121,13 @@ const StyledWrapper = styled.div`
     color: #007bff;
   }
 
-  .search{
-  width: 100%; /* Set fixed width */
-  max-width: 600px; /* Optional: Limit the max width */
-  margin: 0 auto; /* Center alignment */
-  position: relative; /* Prevent unintended shifts */
-}
-
+  /* Ensures the layout doesn't change unexpectedly */
+  .search {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    position: relative;
+    transition: width 0.3s ease-in-out;
+  }
 `;
+

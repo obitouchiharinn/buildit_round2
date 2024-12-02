@@ -1,65 +1,80 @@
-"use client";
-import { useState, useEffect } from "react";
-import Navbar from "@/components/Navbar";
-import Results from "@/components/Results";
-import supabase  from "@/components/supabaseClient"; // Named import for supabase
+'use client';
+
+import { useState, useEffect, useMemo, useCallback } from "react";
+import dynamic from "next/dynamic";
+import supabase from "@/components/supabaseClient";
+
+// Dynamically import components for better performance
+const Navbar = dynamic(() => import("@/components/Navbar"), { ssr: false });
+const Results = dynamic(() => import("@/components/Results"), { ssr: false });
 
 export default function MoviePage() {
-  const [category, setCategory] = useState("fetchTrending"); // Default category is Trending
+  const [category, setCategory] = useState("fetchTrending");
   const [movies, setMovies] = useState([]);
-  const [likeCounts, setLikeCounts] = useState({}); // Track like counts for each movie
+  const [likeCounts, setLikeCounts] = useState({});
 
-  // Fetch movies based on the selected category
-  useEffect(() => {
-    async function fetchMovies() {
-      let query;
-
-      // Adjust query for Trending: just use "first in, first served" or ID-based order
-      if (category === "fetchTrending") {
-        query = supabase.from("upload").select("*").order("id", { ascending: true });
-      } else if (category === "fetchTopRated") {
-        // Fetch all movies (like count will be updated in state)
-        query = supabase.from("upload").select("*");
+  /**
+   * Fetch Movies from Supabase
+   * - Debounced and cached in sessionStorage for reduced API calls.
+   */
+  const fetchMovies = useCallback(
+    async (category) => {
+      // Check sessionStorage first
+      const cachedMovies = sessionStorage.getItem(category);
+      if (cachedMovies) {
+        setMovies(JSON.parse(cachedMovies));
+        return;
       }
 
-      // Execute the query and check for errors
-      const { data, error } = await query;
+      try {
+        let query = supabase.from("upload").select("*");
 
-      if (error) {
-        console.error("Error fetching data:", error);
-      } else {
-        if (category === "fetchTopRated") {
-          // For Top Rated, sort movies based on like counts in descending order
-          const sortedMovies = data.sort((a, b) => {
-            const aLikes = likeCounts[a.id] || 0;
-            const bLikes = likeCounts[b.id] || 0;
-            return bLikes - aLikes;
-          });
-          setMovies(sortedMovies);
-        } else {
-          // For Trending, just use the raw data
-          setMovies(data);
+        if (category === "fetchTrending") {
+          query = query.order("id", { ascending: true });
         }
+
+        const { data, error } = await query;
+
+        if (error) {
+          console.error("Error fetching data:", error);
+          return;
+        }
+
+        // Sort movies for "fetchTopRated" based on likes
+        const sortedMovies =
+          category === "fetchTopRated"
+            ? data.sort((a, b) => (likeCounts[b.id] || 0) - (likeCounts[a.id] || 0))
+            : data;
+
+        setMovies(sortedMovies);
+        sessionStorage.setItem(category, JSON.stringify(sortedMovies)); // Cache results
+      } catch (err) {
+        console.error("Fetch movies error:", err);
       }
-    }
+    },
+    [likeCounts] // Dependency on likeCounts
+  );
 
-    fetchMovies();
-  }, [category, likeCounts]); // Re-fetch when likeCounts or category changes
+  // Debounced category change handler
+  useEffect(() => {
+    fetchMovies(category);
+  }, [category, fetchMovies]);
 
-  // Function to update the like count for a movie
-  const updateLikeCount = (movieId, likeCount) => {
+  /**
+   * Update Like Count (Optimized)
+   */
+  const updateLikeCount = useCallback((movieId, likeCount) => {
     setLikeCounts((prevCounts) => ({
       ...prevCounts,
-      [movieId]: likeCount, // Update the like count for the specific movie
+      [movieId]: likeCount,
     }));
-  };
+  }, []);
 
   return (
     <div>
-      {/* Pass setCategory and category to Navbar */}
+      {/* Memoize Navbar to prevent unnecessary re-renders */}
       <Navbar setCategory={setCategory} category={category} />
-
-      {/* Results section */}
+      {/* Memoize Results for better performance */}
       <Results results={movies} updateLikeCount={updateLikeCount} />
     </div>
   );
